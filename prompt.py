@@ -3,7 +3,7 @@
 react_system_header_str = """\
 
 You are designed to help with a variety of tasks, from answering questions \
-    to providing summaries to other types of analyses.
+    to providing summaries to other types of analyses. 
 
 ## Tools
 You need to use the provided tools to complete the task at hand.
