@@ -10,7 +10,6 @@ import time, datetime
 import streamlit as st
 from llama_index.core.memory import ChatMemoryBuffer
 import toml
-import primoapi as pa
 from llama_index.core.tools import QueryEngineTool, FunctionTool
 from llama_index.core.agent import ReActAgent
 from prompts import react_system_header_str
@@ -69,7 +68,8 @@ def getOneSearch(term:str)-> str:
     """When it is related to a book or an article, use this tool."""
     response = []
     if term:
-        pa.search(term, response)
+        response['title'] = 'Please check SJSU OneSearch for books and articles.'
+        response['link'] = 'https://csu-sjsu.primo.exlibrisgroup.com/discovery/search?vid=01CALS_SJO:01CALS_SJO&lang=en'
     else:
         response['title'] = 'Please check SJSU OneSearch for books and articles.'
         response['link'] = 'https://csu-sjsu.primo.exlibrisgroup.com/discovery/search?vid=01CALS_SJO:01CALS_SJO&lang=en'
