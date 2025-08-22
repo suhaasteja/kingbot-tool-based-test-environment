@@ -1,0 +1,10 @@
+streamlit
+streamlit-feedback
+chromadb
+llama-index-vector-stores-chroma
+llama-index-embeddings-openai
+llama-index-core 
+llama-index-llms-openai
+mysqlclient
+sqlalchemy
+pysqlite3-binary
