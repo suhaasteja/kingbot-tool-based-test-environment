@@ -45,30 +45,6 @@ p img{
 """
 
 
-@st.cache_resource(ttl="1d")
-def getDSConnection():
-    return st.connection("mysqldb",autocommit=True)
-
-
-def saveFB(feedback, ts):
-    try:
-        conn = getDSConnection()
-        score = ''
-        comment = ''
-        timest = ts.replace('T', ' ')
-        if feedback['score']:
-            thumbs = (feedback['score']).strip()
-            score = {"👍": "good", "👎": "bad"}[thumbs]
-        if feedback['text']:
-            comment = (feedback['text']).strip()
-        with conn.session as s:
-            params = {'fb':comment, 'timest':timest}
-            clause = "UPDATE chathistory SET {0}=:fb WHERE timest=:timest".format(score)
-            s.execute(text(clause), params)
-            s.commit()
-    except Exception as e:
-        st.error(e)
-
 
 def queryBot(user_query,bot,chip=''):
     current = datetime.datetime.now()
