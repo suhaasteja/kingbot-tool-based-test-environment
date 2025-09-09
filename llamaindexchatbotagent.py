@@ -130,19 +130,6 @@ if __name__ == "__main__":
     if user_query := st.chat_input(placeholder="Ask me about the SJSU Library!"):
         queryBot(user_query,bot)
 
-    # feedback, works outside user_query section
-    feedback_kwargs = {
-        "feedback_type": "thumbs",
-        "optional_text_label": "Optional. Please provide extra information",
-        "on_submit": saveFB,
-    }
-
-    if 'moment' in st.session_state:
-        currents = st.session_state.moment
-        streamlit_feedback(
-            **feedback_kwargs, args=(currents,), key=currents,
-        )
-
 
 
 
