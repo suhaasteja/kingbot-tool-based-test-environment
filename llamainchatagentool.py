@@ -65,7 +65,7 @@ def getBot():
 
 
 def getOneSearch(term:str)-> str:
-    """Searches for journal articles and books in the OpenAlex API using a keyword."""
+    """Use this tool for questions about articles or books."""
     response = []
     if term:
         response = Works().search(term).get()
