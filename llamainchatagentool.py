@@ -94,7 +94,7 @@ def getAngent(memory):
         tools,
         llm=llm,
         memory=memory,
-        verbose=False,
+        verbose=True,
         system_prompt=react_system_header_str,
     )
     return agent
