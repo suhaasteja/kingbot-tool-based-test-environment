@@ -13,6 +13,7 @@ import toml
 from llama_index.core.tools import QueryEngineTool, FunctionTool
 from llama_index.core.agent import ReActAgent
 from prompts import react_system_header_str
+from pyalex import Works
 
 
 @st.cache_resource(ttl="1d", show_spinner=False)
