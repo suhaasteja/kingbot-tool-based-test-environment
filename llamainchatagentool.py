@@ -67,6 +67,8 @@ def getBot():
 
 def getOneSearch(term:str)-> str:
     """Use this tool for questions about articles or books."""
+    # Create a pager with a page size of 5
+    pager = Works().paginate(per_page=5)
     response = []
     if term:
         response = Works().search(term).get()
