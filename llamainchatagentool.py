@@ -91,7 +91,7 @@ def getKingbot(query:str)-> str:
 
 def getAngent(memory):
     oneSearch_tool = FunctionTool.from_defaults(fn=getOneSearch,return_direct=False)
-    bot_tool = FunctionTool.from_defaults(fn=getKingbot,return_direct=True)
+    bot_tool = FunctionTool.from_defaults(fn=getKingbot,return_direct=False)
 
     tools = [oneSearch_tool,bot_tool]
     agent_prompt = '''You are the agent for SJSU library chatbot. You can answer questions about articles and books by displaying numbered lists of articles, authors and links from OneSearch.
