@@ -73,7 +73,7 @@ def getOneSearch(term:str)-> str:
     pager = Works().paginate(per_page=5)
     response = []
     if term:
-        response = Works().search(term).get()
+        response = Works().search(term).select(["display_name", "doi"]).get()
     else:
         response = "Could not extract search term"
     return response
