@@ -31,6 +31,8 @@ def getIndex():
 @st.cache_resource(ttl="1d", show_spinner=False)
 def getBot():
     index = getIndex()
+    
+
     llm = OpenAI(model="gpt-4o-mini", temperature=0, api_key=st.secrets.openai.key)
     today = datetime.date.today().strftime('%B %d, %Y')
 
@@ -79,8 +81,11 @@ def getOneSearch(term:str)-> str:
 
 def getKingbot(query:str)-> str:
     """Kingbot for SJSU library information, not for books or article search."""
-    engine = getBot()
-    response = engine.chat(query)
+    #engine = getBot()
+    #response = engine.chat(query)
+    index = getIndex()
+    retriever = index.as_retriever()
+    response = retriever.retrieve(query)
     return response
 
 
@@ -89,8 +94,8 @@ def getAngent(memory):
     bot_tool = FunctionTool.from_defaults(fn=getKingbot,return_direct=True)
 
     tools = [oneSearch_tool,bot_tool]
-    agent_prompt = '''You are the agent for SJSU library chatbot. Please format the response from OneSearch, \
-            by displaying of number lists of titles and authors, and please link the titles with the link field provided.  \
+    agent_prompt = '''You are the agent for SJSU library chatbot. You can answer questions about articles and books by displaying numbered lists of articles, authors and links from OneSearch.
+    You can also answer questions about SJSU Library by searching using the bot tool and replying using information from the provided documents.
         '''
     llm = OpenAI(model="gpt-4o-mini", temperature=0, api_key=st.secrets.openai.key)
     agent = ReActAgent.from_tools(
