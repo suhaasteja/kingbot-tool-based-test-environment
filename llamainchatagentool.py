@@ -65,14 +65,12 @@ def getBot():
 
 
 def getOneSearch(term:str)-> str:
-    """When it is related to a book or an article, use this tool."""
+    """Searches for journal articles and books in the OpenAlex API using a keyword."""
     response = []
     if term:
-        response['title'] = 'Please check SJSU OneSearch for books and articles.'
-        response['link'] = 'https://csu-sjsu.primo.exlibrisgroup.com/discovery/search?vid=01CALS_SJO:01CALS_SJO&lang=en'
+        response = Works().search(term).get()
     else:
-        response['title'] = 'Please check SJSU OneSearch for books and articles.'
-        response['link'] = 'https://csu-sjsu.primo.exlibrisgroup.com/discovery/search?vid=01CALS_SJO:01CALS_SJO&lang=en'
+        response = "Could not extract search term"
     return response
 
 
