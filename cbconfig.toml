@@ -30,3 +30,11 @@ chip = "SC: ResearchStart"
 label = "Borrow A Laptop"
 content = "How do I borrow a laptop from SJSU library"
 chip = "SC: BorrowLaptop"
+
+[logger]
+
+# Level of logging for Streamlit's internal logger: "error", "warning",
+# "info", or "debug".
+#
+# Default: "info"
+level = "debug"
