@@ -12,7 +12,7 @@ from llama_index.core.memory import ChatMemoryBuffer
 import toml
 from llama_index.core.tools import QueryEngineTool, FunctionTool
 from llama_index.core.agent import ReActAgent
-from prompts-test import react_system_header_str
+from promptstest import react_system_header_str
 from pyalex import Works
 
 
