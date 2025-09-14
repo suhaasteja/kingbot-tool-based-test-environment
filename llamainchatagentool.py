@@ -12,7 +12,7 @@ from llama_index.core.memory import ChatMemoryBuffer
 import toml
 from llama_index.core.tools import QueryEngineTool, FunctionTool
 from llama_index.core.agent import ReActAgent
-from prompts import react_system_header_str
+from prompts-test import react_system_header_str
 from pyalex import Works
 
 
@@ -92,12 +92,11 @@ def getKingbot(query:str)-> str:
 def getAngent(memory):
     oneSearch_tool = FunctionTool.from_defaults(fn=getOneSearch,return_direct=False)
     bot_tool = FunctionTool.from_defaults(fn=getKingbot,return_direct=False)
-    print(react_system_header_str)
+
     tools = [oneSearch_tool,bot_tool]
     today = datetime.date.today().strftime('%B %d, %Y')
     agent_prompt = '''You are the agent for SJSU library chatbot. You can answer questions about articles and books by displaying numbered lists of articles, authors and links from OneSearch.
     You can also answer questions about SJSU Library by searching using the bot tool and replying using information from the provided documents.
-    Today is {today}. Always use this information along with documents from the bot tool to answer time-sensitive questions about library hours or events. 
         '''
     llm = OpenAI(model="gpt-4o-mini", temperature=0, api_key=st.secrets.openai.key)
     agent = ReActAgent.from_tools(
