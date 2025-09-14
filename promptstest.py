@@ -12,8 +12,6 @@ to complete each subtask. Always use at least one of the provided tools - do not
 You have access to the following tools:
 {tool_desc}
 
-Today's date is {today}
-
 ## Action output Format
 Use the following format to print out process for each action. This output is for backend debugging purpose.
 

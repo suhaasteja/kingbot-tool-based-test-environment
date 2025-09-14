@@ -88,15 +88,21 @@ def getKingbot(query:str)-> str:
     response = retriever.retrieve(query)
     return response
 
+def date(query:str)-> str:
+    '''Use this tool to retrieve today's date when answering questions about today's date, or current events and hours in the library '''
+    response = "Today is " + datetime.date.today().strftime('%B %d, %Y')
+    return response
+
 
 def getAngent(memory):
     oneSearch_tool = FunctionTool.from_defaults(fn=getOneSearch,return_direct=False)
     bot_tool = FunctionTool.from_defaults(fn=getKingbot,return_direct=False)
+    date_tool = FunctionTool.from_defaults(fn=date,return_direct=False)
 
-    tools = [oneSearch_tool,bot_tool]
-    today = datetime.date.today().strftime('%B %d, %Y')
+    tools = [oneSearch_tool,bot_tool, date_tool]
     agent_prompt = '''You are the agent for SJSU library chatbot. You can answer questions about articles and books by displaying numbered lists of articles, authors and links from OneSearch.
     You can also answer questions about SJSU Library by searching using the bot tool and replying using information from the provided documents.
+    For questions involving today's date, or current events and hours in the library, first use the date tool to retrieve the date, then proceed to query the bot tool for information about current events and hours. 
         '''
     llm = OpenAI(model="gpt-4o-mini", temperature=0, api_key=st.secrets.openai.key)
     agent = ReActAgent.from_tools(
