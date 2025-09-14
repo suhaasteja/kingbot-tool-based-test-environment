@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
     # get bot
     if 'mybot' not in st.session_state:
-        st.session_state.mybot = at.getAngent(memory)
+        st.session_state.mybot = at.getAgent(memory)
     bot = st.session_state.mybot
 
     # get streamlit session

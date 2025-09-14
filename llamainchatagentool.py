@@ -54,7 +54,7 @@ def date(query:str)-> str:
     return response
 
 
-def getAngent(memory):
+def getAgent(memory):
     oneSearch_tool = FunctionTool.from_defaults(fn=getOneSearch,return_direct=False)
     bot_tool = FunctionTool.from_defaults(fn=getKingbot,return_direct=False)
     date_tool = FunctionTool.from_defaults(fn=date,return_direct=False)
