@@ -66,7 +66,7 @@ def getAgent(memory):
         llm=llm,
         memory=memory,
         verbose=True,
-        max_iterations=5,
+        # max_iterations=5,
         system_prompt=react_system_header_str,
     )
     return agent
