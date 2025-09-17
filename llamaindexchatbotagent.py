@@ -1,11 +1,11 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import time, datetime
 import streamlit as st
 from sqlalchemy.sql import text
 from streamlit.runtime.scriptrunner import get_script_run_ctx
-from streamlit_feedback import streamlit_feedback
+# from streamlit_feedback import streamlit_feedback
 from llama_index.core.memory import ChatMemoryBuffer
 import toml
 import llamainchatagentool as at
@@ -57,9 +57,19 @@ def queryBot(user_query,bot,chip=''):
     st.chat_message("user", avatar=AVATARS["user"]).write(user_query)
     with st.chat_message("assistant", avatar=AVATARS["assistant"]):
         with st.spinner(text="In progress..."):
-            response = bot.chat(user_query)
-            answer = response.response
+            answer = ""
+            error = ""
+            try:
+                response = bot.chat(user_query)
+                answer = response.response
+                error = "No error"
+            except Exception as e:
+                print(e)
+                answer = f"Sorry there was an error answering '{user_query}'"
+                error = e
             st.write(answer)
+            with st.expander("log"):
+                st.write(error)
 
 if __name__ == "__main__":
 
