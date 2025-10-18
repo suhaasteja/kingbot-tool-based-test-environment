@@ -1,6 +1,6 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import time, datetime
 import streamlit as st
 from sqlalchemy.sql import text
@@ -45,36 +45,130 @@ p img{
 """
 
 
+from langfuse import get_client, observe
 
-def queryBot(user_query,bot,chip=''):
+import os
+ 
+# Get keys for your project from the project settings page: https://cloud.langfuse.com
+ 
+os.environ["LANGFUSE_PUBLIC_KEY"] = st.secrets.langfuse["LANGFUSE_PUBLIC_KEY"]
+os.environ["LANGFUSE_SECRET_KEY"] = st.secrets.langfuse["LANGFUSE_SECRET_KEY"]
+os.environ["LANGFUSE_HOST"] = st.secrets.langfuse["LANGFUSE_HOST"]
+ 
+ 
+ 
+langfuse = get_client()
+ 
+# Verify connection
+if langfuse.auth_check():
+    print("Langfuse client is authenticated and ready!")
+else:
+    print("Authentication failed. Please check your credentials and host.")
+ 
+from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+ 
+# Initialize LlamaIndex instrumentation
+LlamaIndexInstrumentor().instrument()
+
+import asyncio
+
+
+async def runReActAgent(user_query, agent):
+    """Run ReAct Agent with tracing"""
+    with langfuse.start_as_current_span(name="ReAct-Agent"):
+        try:
+            start_time = time.time()
+            response = agent.chat(user_query)
+            latency = time.time() - start_time
+            
+            return {
+                "response": response.response,
+                "latency": latency,
+                "status": "success"
+            }
+        except Exception as e:
+            return {
+                "response": f"Error: {str(e)}",
+                "latency": 0,
+                "status": "error"
+            }
+
+
+async def runFunctionAgent(user_query, agent):
+    """Run Function Agent with tracing"""
+    with langfuse.start_as_current_span(name="Function-Agent"):
+        try:
+            start_time = time.time()
+            response = await agent.run(user_query)
+            latency = time.time() - start_time
+            
+            return {
+                "response": str(response),
+                "latency": latency,
+                "status": "success"
+            }
+        except Exception as e:
+            return {
+                "response": f"Error: {str(e)}",
+                "latency": 0,
+                "status": "error"
+            }
+
+
+import time
+
+async def queryBothAgentsSequential(user_query, agents):
+    """Query both agents sequentially"""
     current = datetime.datetime.now()
     st.session_state.moment = current.isoformat()
-    session_id = st.session_state.session_id
-    today = current.date()
-    now = current.time()
-    answer = ''
-
+    
     st.chat_message("user", avatar=AVATARS["user"]).write(user_query)
+    
+    # Run Function Agent
     with st.chat_message("assistant", avatar=AVATARS["assistant"]):
-        with st.spinner(text="In progress..."):
-            answer = ""
-            error = ""
-            try:
-                response = bot.chat(user_query)
-                answer = response.response
-                error = "No error"
-            except Exception as e:
-                print(e)
-                answer = f"Sorry there was an error answering '{user_query}'"
-                error = e
-            st.write(answer)
-            with st.expander("log"):
-                st.write(error)
+        with st.spinner(text="Function Agent processing..."):
+            start_time = time.time()
+            function_result = await runFunctionAgent(user_query, agents['function'])
+            function_latency = time.time() - start_time
+            
+            st.write("**Function Agent:**")
+            st.write(function_result['response'])
+            st.caption(f"⏱️ Function Latency: {function_latency:.2f}s")
+            
+    # Run ReAct Agent
+    with st.chat_message("assistant", avatar=AVATARS["assistant"]):
+        with st.spinner(text="ReAct Agent processing..."):
+            start_time = time.time()
+            react_result = await runReActAgent(user_query, agents['react'])
+            react_latency = time.time() - start_time
+            
+            st.write("**ReAct Agent:**")
+            st.write(react_result['response'])
+            st.caption(f"⏱️ ReAct Latency: {react_latency:.2f}s")
+    
+    
+    # Total comparison
+    total_time = react_latency + function_latency
+    faster_agent = "ReAct" if react_latency < function_latency else "Function"
+    time_diff = abs(react_latency - function_latency)
+    
+    st.info(f"⚡ Total time: {total_time:.2f}s | {faster_agent} was {time_diff:.2f}s faster")
+    
+    langfuse.flush()
+
+def queryBothAgents(user_query, agents, chip=''):
+    """Wrapper function to run async query"""
+    asyncio.run(queryBothAgentsSequential(user_query, agents))
+
 
 if __name__ == "__main__":
 
     # set up streamlit page
-    st.set_page_config(page_title="Kingbot - SJSU Library", page_icon="🤖", initial_sidebar_state="expanded")
+    st.set_page_config(
+        page_title="Kingbot - SJSU Library", 
+        page_icon="🤖", 
+        initial_sidebar_state="expanded"
+    )
     st.markdown(HIDEMENU, unsafe_allow_html=True)
 
     # side
@@ -106,10 +200,10 @@ if __name__ == "__main__":
         st.session_state.memory = memory
     memory = st.session_state.memory
 
-    # get bot
-    if 'mybot' not in st.session_state:
-        st.session_state.mybot = at.getAgent(memory)
-    bot = st.session_state.mybot
+    # get both agents
+    if 'agents' not in st.session_state:
+        st.session_state.agents = at.getBothAgents(memory)
+    agents = st.session_state.agents
 
     # get streamlit session
     if 'session_id' not in st.session_state:
@@ -130,16 +224,12 @@ if __name__ == "__main__":
 
     # chip
     if button1:
-        queryBot(cbconfig['button1']['content'],bot,cbconfig['button1']['chip'])
+        queryBothAgents(cbconfig['button1']['content'], agents, cbconfig['button1']['chip'])
     if button2:
-        queryBot(cbconfig['button2']['content'],bot,cbconfig['button2']['chip'])
+        queryBothAgents(cbconfig['button2']['content'], agents, cbconfig['button2']['chip'])
     if button3:
-        queryBot(cbconfig['button3']['content'],bot,cbconfig['button3']['chip'])
+        queryBothAgents(cbconfig['button3']['content'], agents, cbconfig['button3']['chip'])
 
     # chat
     if user_query := st.chat_input(placeholder="Ask me about the SJSU Library!"):
-        queryBot(user_query,bot)
-
-
-
-
+        queryBothAgents(user_query, agents)

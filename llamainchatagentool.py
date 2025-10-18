@@ -1,6 +1,6 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import chromadb
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.embeddings.openai import OpenAIEmbedding
@@ -12,9 +12,11 @@ from llama_index.core.memory import ChatMemoryBuffer
 import toml
 from llama_index.core.tools import QueryEngineTool, FunctionTool
 from llama_index.core.agent import ReActAgent
+from llama_index.core.agent.workflow import FunctionAgent
 from promptstest import react_system_header_str
 from pyalex import Works
 
+from langfuse import observe
 
 @st.cache_resource(ttl="1d", show_spinner=False)
 def getIndex():
@@ -27,6 +29,7 @@ def getIndex():
         embed_model=embedding,
     )
     return index
+
 
 def getOneSearch(term:str)-> str:
     """Use this tool for questions about articles or books."""
@@ -41,12 +44,19 @@ def getOneSearch(term:str)-> str:
 
 def getKingbot(query:str)-> str:
     """Kingbot for SJSU library information, not for books or article search."""
-    #engine = getBot()
-    #response = engine.chat(query)
     index = getIndex()
-    retriever = index.as_retriever()
-    response = retriever.retrieve(query)
-    return response
+    retriever = index.as_retriever(similarity_top_k=3)
+    nodes = retriever.retrieve(query)
+    
+    # Format for the agent to read
+    if not nodes:
+        return "No relevant information found in the library knowledge base."
+    
+    context = []
+    for i, node in enumerate(nodes, 1):
+        context.append(f"[Source {i}] {node.text}")
+    
+    return "\n\n".join(context)
 
 def date(query:str)-> str:
     '''Use this tool to retrieve today's date when answering questions about today's date, or current events and hours in the library '''
@@ -54,20 +64,46 @@ def date(query:str)-> str:
     return response
 
 
-def getAgent(memory):
-    oneSearch_tool = FunctionTool.from_defaults(fn=getOneSearch,return_direct=False)
-    bot_tool = FunctionTool.from_defaults(fn=getKingbot,return_direct=False)
-    date_tool = FunctionTool.from_defaults(fn=date,return_direct=False)
+def getReActAgent(memory):
+    """Create and return ReAct Agent"""
+    oneSearch_tool = FunctionTool.from_defaults(fn=getOneSearch, return_direct=False)
+    bot_tool = FunctionTool.from_defaults(fn=getKingbot, return_direct=False)
+    date_tool = FunctionTool.from_defaults(fn=date, return_direct=False)
 
-    tools = [oneSearch_tool,bot_tool, date_tool]
+    tools = [oneSearch_tool, bot_tool, date_tool]
     llm = OpenAI(model="gpt-4o-mini", temperature=0, api_key=st.secrets.openai.key)
+    
     agent = ReActAgent.from_tools(
         tools,
         llm=llm,
-        memory=memory,
+        # memory=memory,
         verbose=True,
-        # max_iterations=5,
         system_prompt=react_system_header_str,
     )
     return agent
 
+
+def getFunctionAgent(memory):
+    """Create and return Function Agent"""
+    oneSearch_tool = FunctionTool.from_defaults(fn=getOneSearch, return_direct=False)
+    bot_tool = FunctionTool.from_defaults(fn=getKingbot, return_direct=False)
+    date_tool = FunctionTool.from_defaults(fn=date, return_direct=False)
+
+    tools = [oneSearch_tool, bot_tool, date_tool]
+    llm = OpenAI(model="gpt-4o-mini", temperature=0, api_key=st.secrets.openai.key)
+    
+    agent = FunctionAgent(
+        tools=tools,
+        llm=llm,
+        verbose=True,
+        system_prompt="you are KingbotGPT, AI assistant for SJSU library, utilise one of the tools given to answer user query.",
+    )
+    return agent
+
+
+def getBothAgents(memory):
+    """Create and return both agents for comparison"""
+    return {
+        'function': getFunctionAgent(memory),
+        'react': getReActAgent(memory),
+    }
