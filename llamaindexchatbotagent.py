@@ -142,7 +142,8 @@ if __name__ == "__main__":
 
     # get bot
     if 'mybot' not in st.session_state:
-        st.session_state.mybot = at.getAgent(memory)
+        # st.session_state.mybot = at.getAgent(memory)
+        st.session_state.mybot = at.getAgent()
     bot = st.session_state.mybot
 
     # get context
