@@ -1,6 +1,6 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# __import__('pysqlite3')
+# import sys
+# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import time, datetime
 import streamlit as st
 from sqlalchemy.sql import text
@@ -9,6 +9,12 @@ from streamlit.runtime.scriptrunner import get_script_run_ctx
 from llama_index.core.memory import ChatMemoryBuffer
 import toml
 import llamainchatagentool as at
+import asyncio
+import nest_asyncio
+
+nest_asyncio.apply()
+
+from llama_index.core.agent.workflow import ToolCallResult, AgentStream
 
 
 cbconfig = toml.load("cbconfig.toml")
@@ -46,7 +52,7 @@ p img{
 
 
 
-def queryBot(user_query,bot,chip=''):
+async def queryBot(user_query,bot,chip='', ctx=None):
     current = datetime.datetime.now()
     st.session_state.moment = current.isoformat()
     session_id = st.session_state.session_id
@@ -56,20 +62,48 @@ def queryBot(user_query,bot,chip=''):
 
     st.chat_message("user", avatar=AVATARS["user"]).write(user_query)
     with st.chat_message("assistant", avatar=AVATARS["assistant"]):
-        with st.spinner(text="In progress..."):
-            answer = ""
+        with st.spinner("Generating response..."):
+            placeholder = st.empty()
+            full_response = ""
             error = ""
             try:
-                response = bot.chat(user_query)
-                answer = response.response
-                error = "No error"
+                handler = bot.run(user_query, ctx=ctx)
+                streaming_answer = False
+                async for ev in handler.stream_events():
+                    if isinstance(ev, ToolCallResult):
+                        # Log tool calls if needed
+                        pass
+                    if isinstance(ev, AgentStream):
+                        full_response += ev.delta
+                        placeholder.write(full_response)
+                        # if "Answer:" in full_response and not streaming_answer:
+                        #     streaming_answer = True
+                        # if streaming_answer:
+                        #     # Display only the part after "Answer:"
+                        #     answer_part = full_response.split("Answer:", 1)[-1].strip()
+                        #     placeholder.write(answer_part)
+                # Final response
+                response = await handler
+                answer = str(response)
+                # Extract final answer if needed
+                # if "Answer:" in answer:
+                #     answer = answer.split("Answer:", 1)[-1].strip()
+                placeholder.write(answer)
             except Exception as e:
                 print(e)
                 answer = f"Sorry there was an error answering '{user_query}'"
-                error = e
-            st.write(answer)
-            with st.expander("log"):
-                st.write(error)
+                placeholder.write(answer)
+                error = str(e)
+        with st.expander("log"):
+            if error:
+                st.write("Error:", error)
+            st.write("Full reasoning:", full_response)
+
+    # Append to chat history
+    st.session_state.chat_history.append({'role': 'user', 'content': user_query})
+    st.session_state.chat_history.append({'role': 'assistant', 'content': answer})
+    # Limit history to last 20 entries
+    st.session_state.chat_history = st.session_state.chat_history[-20:]
 
 if __name__ == "__main__":
 
@@ -111,6 +145,11 @@ if __name__ == "__main__":
         st.session_state.mybot = at.getAgent(memory)
     bot = st.session_state.mybot
 
+    # get context
+    if 'ctx' not in st.session_state:
+        st.session_state.ctx = at.Context(bot)
+    ctx = st.session_state.ctx
+
     # get streamlit session
     if 'session_id' not in st.session_state:
         session_id = get_script_run_ctx().session_id
@@ -118,6 +157,14 @@ if __name__ == "__main__":
 
     if 'reference' not in st.session_state:
         st.session_state.reference = ''
+
+    # chat history
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []
+
+    # display chat history
+    for entry in st.session_state.chat_history:
+        st.chat_message(entry['role'], avatar=AVATARS[entry['role']]).write(entry['content'])
 
     # messeges kept in streamlit session for display
     max_messages: int = 10  # Set the limit (K) of messages to keep
@@ -130,15 +177,15 @@ if __name__ == "__main__":
 
     # chip
     if button1:
-        queryBot(cbconfig['button1']['content'],bot,cbconfig['button1']['chip'])
+        asyncio.run(queryBot(cbconfig['button1']['content'],bot,cbconfig['button1']['chip'], ctx))
     if button2:
-        queryBot(cbconfig['button2']['content'],bot,cbconfig['button2']['chip'])
+        asyncio.run(queryBot(cbconfig['button2']['content'],bot,cbconfig['button2']['chip'], ctx))
     if button3:
-        queryBot(cbconfig['button3']['content'],bot,cbconfig['button3']['chip'])
+        asyncio.run(queryBot(cbconfig['button3']['content'],bot,cbconfig['button3']['chip'], ctx))
 
     # chat
     if user_query := st.chat_input(placeholder="Ask me about the SJSU Library!"):
-        queryBot(user_query,bot)
+        asyncio.run(queryBot(user_query,bot, ctx=ctx))
 
 
 
